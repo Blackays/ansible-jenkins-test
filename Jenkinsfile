@@ -2,35 +2,40 @@ def gv
 
 pipeline {
     agent any
+    environment {
+        DROPLET_PUBLIC_IP = "167.99.136.157"
+    }
     stages {
-        stage("init") {
+        stage("Copy files to ansible server") {
             steps {
                 script {
-                    gv = load "script.groovy"
+                    echo "copying all neccessary files to ansible control node"
+                    def droplet = "root@${DROPLET_PUBLIC_IP}"
+                    sshagent(['droplet-server-key']) {
+                        sh "scp -o StrictHostKeyChecking=no ansible/* ${droplet}:/root"                    
+                        withCredentials([sshUserPrivateKey(credentialsId: 'droplet', keyFileVariable: 'keyfile',usernameVariable: 'user')]) {
+                            sh 'scp $keyfile ${droplet}:/root/ssh-key.pem'  //single quotes and no brackats {} for variables
+                        }
+                    }                    
                 }
             }
         }
-        stage("build jar") {
+        stage("Execute ansible playbook") {
             steps {
                 script {
-                    echo "building jar"
-                    //gv.buildJar()
-                }
-            }
-        }
-        stage("build image") {
-            steps {
-                script {
-                    echo "building image"
-                    //gv.buildImage()
-                }
-            }
-        }
-        stage("deploy") {
-            steps {
-                script {
-                    echo "deploying"
-                    //gv.deployApp()
+                    echo "Calling ansible playbook to configure instances"
+                    def remote = [:]
+                    remote.name = "ansible-server"
+                    remote.host = DROPLET_PUBLIC_IP
+                    remote.allowAnyHosts = true
+
+                    withCredentials([sshUserPrivateKey(credentialsId: 'droplet', keyFileVariable: 'keyfile',usernameVariable: 'user')]) {
+                        remote.user = user
+                        remote.identityFile = keyfile
+                        // OPTIONAL, DEPENDS ON YOUR PLAYBOOK
+                        // sshScript remote: remote, script: "prepare-ansible-server.sh" 
+                        sshCommand remote: remote, command: "ansible-playbook playbook.yaml"
+                    }
                 }
             }
         }
