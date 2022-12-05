@@ -32,8 +32,6 @@ pipeline {
                     withCredentials([sshUserPrivateKey(credentialsId: 'droplet', keyFileVariable: 'keyfile',usernameVariable: 'user')]) {
                         remote.user = user
                         remote.identityFile = keyfile
-                        // OPTIONAL, DEPENDS ON YOUR PLAYBOOK
-                        // sshScript remote: remote, script: "prepare-ansible-server.sh" 
                         sshCommand remote: remote, command: "ansible-playbook playbook.yaml"
                     }
                 }
