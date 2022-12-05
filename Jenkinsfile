@@ -14,7 +14,7 @@ pipeline {
                     sshagent(['droplet-server-key']) {
                         sh "scp -o StrictHostKeyChecking=no ansible/* ${droplet}:/root"                    
                         withCredentials([sshUserPrivateKey(credentialsId: 'droplet', keyFileVariable: 'keyfile',usernameVariable: 'user')]) {
-                            sh 'scp $keyfile ${droplet}:/root/ssh-key.pem'  //single quotes and no brackats {} for variables
+                            sh 'scp $keyfile ${droplet}:/root/ssh-key.pem'
                         }
                     }                    
                 }
